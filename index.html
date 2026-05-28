@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2026 Team Connect Day — 빙고 게임</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blue: #185FA5;
+    --blue-light: #E6F1FB;
+    --blue-dark: #0C447C;
+    --green: #639922;
+    --green-light: #EAF3DE;
+    --green-dark: #3B6D11;
+    --green-bingo: #9FE1CB;
+    --green-bingo-border: #1D9E75;
+    --border: #D8DDE6;
+    --bg: #F7F8FA;
+    --bg2: #ECEEF2;
+    --text: #1A1D23;
+    --text2: #5A6272;
+    --text3: #9AA0AD;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Outfit', sans-serif;
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 2rem 1rem;
+  }
+  .app { width: 100%; max-width: 480px; }
+  .header { text-align: center; margin-bottom: 1.75rem; }
+  .event-label {
+    display: inline-block;
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 2px; color: var(--blue);
+    text-transform: uppercase;
+    background: var(--blue-light);
+    padding: 4px 12px; border-radius: 20px; margin-bottom: 10px;
+  }
+  .header h1 { font-size: 26px; font-weight: 700; color: var(--text); letter-spacing: -0.5px; }
+  .header p { font-size: 13px; color: var(--text2); margin-top: 5px; }
+  .status-bar {
+    text-align: center; font-size: 12px; color: var(--text2);
+    padding: 9px; background: var(--bg2); border-radius: var(--radius);
+    margin-bottom: 1rem; font-weight: 500;
+  }
+  .bingo-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 10px; margin-bottom: 1.25rem;
+  }
+  .cell {
+    position: relative; aspect-ratio: 1;
+    border-radius: var(--radius); border: 1.5px solid var(--border);
+    background: white; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; overflow: visible;
+    transition: background 0.25s, border-color 0.25s, box-shadow 0.25s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .cell:hover { box-shadow: 0 3px 10px rgba(0,0,0,0.08); }
+  .cell.bingo-line { background: var(--blue-light); border-color: #378ADD; box-shadow: 0 0 0 2px rgba(55,138,221,0.15); }
+  .cell.bingo-line .cell-name { color: var(--blue-dark); font-weight: 600; }
+  .cell.marked { background: var(--green-light); border-color: var(--green); }
+  .cell.marked .cell-name { color: var(--green-dark); font-weight: 600; }
+  .cell.marked.bingo-line { background: var(--green-bingo); border-color: var(--green-bingo-border); box-shadow: 0 0 0 2px rgba(29,158,117,0.2); }
+  .cell-input-wrap { width: 100%; padding: 8px; }
+  .cell-input {
+    width: 100%; border: none; background: transparent;
+    font-size: 13px; text-align: center; color: var(--text);
+    outline: none; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 500;
+  }
+  .cell-input::placeholder { color: var(--text3); font-size: 11px; font-weight: 400; }
+  .cell-input.invalid { color: #C0392B; }
+  .cell-name {
+    font-size: 13px; font-weight: 500; color: var(--text);
+    text-align: center; padding: 4px 8px; line-height: 1.3; word-break: keep-all;
+  }
+  .mark-btn {
+    position: absolute; top: 5px; right: 5px;
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 1.5px solid var(--border); background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 11px; transition: all 0.15s;
+    color: var(--text2); font-family: 'Outfit', sans-serif;
+  }
+  .mark-btn:hover { background: var(--bg2); transform: scale(1.1); }
+  .cell.marked .mark-btn { background: var(--green); border-color: var(--green-dark); color: white; }
+  .bingo-badge {
+    position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+    background: var(--blue); color: white;
+    font-size: 9px; font-weight: 700; padding: 2px 8px;
+    border-radius: 10px; white-space: nowrap; z-index: 10; letter-spacing: 1px;
+  }
+  .cell.marked.bingo-line .bingo-badge { background: var(--green-bingo-border); }
+  .dropdown {
+    position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 200;
+    background: white; border: 1.5px solid var(--border); border-radius: var(--radius);
+    max-height: 170px; overflow-y: auto; box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+  }
+  .dropdown-item {
+    padding: 9px 12px; font-size: 13px; cursor: pointer;
+    color: var(--text); transition: background 0.1s; font-weight: 400;
+  }
+  .dropdown-item:hover { background: var(--bg); }
+  .dropdown-item.selected { background: var(--blue-light); color: var(--blue-dark); font-weight: 500; }
+  .dropdown-empty { padding: 9px 12px; font-size: 12px; color: var(--text3); text-align: center; }
+  .actions { display: flex; gap: 10px; margin-bottom: 1rem; }
+  .btn {
+    flex: 1; padding: 13px; border-radius: var(--radius);
+    border: 1.5px solid var(--border); background: white;
+    font-size: 14px; font-weight: 600; color: var(--text);
+    cursor: pointer; transition: all 0.15s; font-family: 'Outfit', sans-serif;
+  }
+  .btn:hover { background: var(--bg2); }
+  .btn.primary { background: var(--blue); color: white; border-color: var(--blue); }
+  .btn.primary:hover { background: var(--blue-dark); }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .submitted-hint { font-size: 11px; color: var(--text3); text-align: center; margin-bottom: 0.75rem; }
+
+  /* 빙고 알림 팝업 */
+  .bingo-popup-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 9999; opacity: 0; transition: opacity 0.3s; pointer-events: none;
+  }
+  .bingo-popup-overlay.show { opacity: 1; pointer-events: all; }
+  .bingo-popup {
+    background: white; border-radius: 20px; padding: 2rem 2.5rem;
+    text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    transform: scale(0.85); transition: transform 0.3s;
+    max-width: 300px; width: 90%;
+  }
+  .bingo-popup-overlay.show .bingo-popup { transform: scale(1); }
+  .bingo-popup .emoji { font-size: 48px; margin-bottom: 0.5rem; }
+  .bingo-popup h2 { font-size: 28px; font-weight: 700; color: var(--green-bingo-border); letter-spacing: -0.5px; }
+  .bingo-popup .time-label { font-size: 12px; color: var(--text3); margin-top: 6px; font-weight: 500; }
+  .bingo-popup .time-value { font-size: 22px; font-weight: 700; color: var(--text); margin-top: 2px; letter-spacing: 1px; }
+  .bingo-popup .close-btn {
+    margin-top: 1.25rem; padding: 10px 28px;
+    background: var(--green-bingo-border); color: white;
+    border: none; border-radius: 30px; font-size: 14px; font-weight: 600;
+    cursor: pointer; font-family: 'Outfit', sans-serif; transition: background 0.15s;
+  }
+  .bingo-popup .close-btn:hover { background: var(--green-dark); }
+  .bingo-popup .close-btn:disabled {
+    opacity: 0.9;
+    cursor: default;
+    background: var(--green-bingo-border);
+  }
+
+  .toast {
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    background: var(--blue); color: white;
+    padding: 11px 22px; border-radius: 24px;
+    font-size: 13px; font-weight: 600; z-index: 8888;
+    opacity: 0; transition: opacity 0.3s, transform 0.3s;
+    pointer-events: none; white-space: nowrap;
+    font-family: 'Outfit', sans-serif;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="event-label">2026 Team Connect Day</div>
+    <h1>🎯 빙고 게임</h1>
+    <p>9칸에 참석 임직원 이름을 입력하세요</p>
+  </div>
+  <div id="status-bar" class="status-bar">0 / 9 칸 입력됨</div>
+  <div class="bingo-grid" id="bingo-grid"></div>
+  <div class="actions" id="actions">
+    <button class="btn primary" id="submit-btn" onclick="submitBingo()" disabled>빙고 제출</button>
+    <button class="btn" onclick="resetBingo()">초기화</button>
+  </div>
+  <div id="submitted-hint" class="submitted-hint" style="display:none">제출 완료 — 이름 옆 버튼으로 마킹/해제 가능합니다</div>
+</div>
+
+<!-- 빙고 팝업 -->
+<div class="bingo-popup-overlay" id="bingo-overlay">
+  <div class="bingo-popup" onclick="event.stopPropagation()">
+    <div class="emoji">🎉</div>
+    <h2>빙고!</h2>
+    <div class="time-label">달성 시각</div>
+    <div class="time-value" id="bingo-time">--:--:--</div>
+    <button class="close-btn" disabled>새로고침 전까지 유지됩니다</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const EMPLOYEES = [
+  "김성권","방성훈","이동기","정세균","김한상","차명근","고영민","오영진",
+  "한혁","신연욱","정민웅","안재중","조혜림","신준호","김지인","류호연",
+  "김영종","신우민","조형윤","강병진","김종훈","크리스","한인규","이미진",
+  "이승민","신정호","조나스","김예하","이경훈","박지현","양희국","박달주",
+  "안창현","장순영","최형규","최윤석","이성주","김정혁","김동진","임국현",
+  "나재원","김주연","이윤재","문한국","허명지","토니","김기준","김범석",
+  "전병선","천영탁","인지","이재준","이강열","이재혁","윤한석","김한솔",
+  "채성민","이승우","오민지","조예진","윤찬호","차원진","고상민","오창민",
+  "최정화","황찬주","김종윤","홍은정","강병윤","김승연","양희준","김형빈",
+  "이로운","이영화","송훈용","양진슬","이기백","박미영","정유재","박준성",
+  "황규민","변지철","주우현","김영석","백광열","원진희","박준배","권준기",
+  "멜로디","박찬주","호효위","김범수","김석란","이현경","김홍준","조승환",
+  "김진유","김진석","심현보","이정목","김연수","임현찬"
+];
+
+const STORAGE_KEY = "tcd_bingo_state";
+
+function saveState() {
+  try {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ cells, submitted }));
+  } catch(e) {}
+}
+
+function loadState() {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+    if (saved.cells && saved.cells.length === 9) {
+      cells = saved.cells;
+      submitted = !!saved.submitted;
+    }
+  } catch(e) {}
+}
+
+let cells = Array(9).fill(null).map(() => ({ name: "", marked: false }));
+let submitted = false;
+let bingoLines = new Set();
+let bingoAchievedTime = null;
+
+// 페이지 로드 시 저장된 상태 복원
+loadState();
+
+// 복원된 마킹 기준으로 빙고 라인 재계산
+function recalcBingoLines() {
+  getLines().forEach((line, idx) => {
+    if (line.every(i => cells[i].marked)) bingoLines.add(idx);
+  });
+}
+recalcBingoLines();
+
+function getLines() {
+  return [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+}
+
+function getNow() {
+  const d = new Date();
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mm = String(d.getMinutes()).padStart(2,'0');
+  const ss = String(d.getSeconds()).padStart(2,'0');
+  return `${hh}:${mm}:${ss}`;
+}
+
+function checkBingo() {
+  const newBingo = new Set();
+  const found = [];
+  getLines().forEach((line, idx) => {
+    if (line.every(i => cells[i].marked)) {
+      newBingo.add(idx);
+      if (!bingoLines.has(idx)) found.push(idx);
+    }
+  });
+  if (found.length > 0) {
+    if (!bingoAchievedTime) {
+      bingoAchievedTime = getNow();
+    }
+    showBingoPopup(bingoAchievedTime);
+  }
+  bingoLines = newBingo;
+  renderGrid();
+}
+
+function showBingoPopup(time) {
+  document.getElementById("bingo-time").textContent = time;
+  document.getElementById("bingo-overlay").classList.add("show");
+}
+
+function closeBingoPopup() {
+  // 빙고 달성 시각 팝업은 새로고침 전까지 유지합니다.
+  // 오버레이 바깥 클릭이나 버튼 클릭으로 닫히지 않도록 비워둡니다.
+}
+
+function getBingoLinesForCell(ci) {
+  return getLines().some((line, idx) => line.includes(ci) && bingoLines.has(idx));
+}
+
+function renderGrid() {
+  const grid = document.getElementById("bingo-grid");
+  grid.innerHTML = "";
+  cells.forEach((cell, i) => {
+    const div = document.createElement("div");
+    div.className = "cell" + (cell.marked ? " marked" : "") + (getBingoLinesForCell(i) ? " bingo-line" : "");
+
+    if (getBingoLinesForCell(i) && cell.marked) {
+      const badge = document.createElement("div");
+      badge.className = "bingo-badge";
+      badge.textContent = "BINGO";
+      div.appendChild(badge);
+    }
+
+    if (!submitted) {
+      const wrap = document.createElement("div");
+      wrap.className = "cell-input-wrap";
+      const inp = document.createElement("input");
+      inp.className = "cell-input";
+      inp.placeholder = `칸 ${i+1}`;
+      inp.value = cell.name;
+      inp.setAttribute("autocomplete","off");
+      inp.addEventListener("input", e => {
+        const val = e.target.value;
+        cells[i].name = val;
+        const isValid = val === "" || EMPLOYEES.some(n => n.includes(val));
+        inp.classList.toggle("invalid", val !== "" && !isValid);
+        showDropdown(i, val, inp, div);
+        updateStatus();
+        saveState();
+      });
+      inp.addEventListener("focus", e => { showDropdown(i, e.target.value, inp, div); });
+      inp.addEventListener("blur", () => {
+        setTimeout(() => {
+          hideDropdown();
+          if (cells[i].name && !EMPLOYEES.includes(cells[i].name)) {
+            cells[i].name = "";
+            inp.value = "";
+            inp.classList.remove("invalid");
+            updateStatus();
+          }
+        }, 200);
+      });
+      wrap.appendChild(inp);
+      div.appendChild(wrap);
+    } else {
+      const nameEl = document.createElement("div");
+      nameEl.className = "cell-name";
+      nameEl.textContent = cell.name || "—";
+      div.appendChild(nameEl);
+      if (cell.name) {
+        const btn = document.createElement("button");
+        btn.className = "mark-btn";
+        btn.title = cell.marked ? "마킹 해제" : "마킹";
+        btn.innerHTML = cell.marked ? "✓" : "○";
+        btn.onclick = () => { cells[i].marked = !cells[i].marked; checkBingo(); saveState(); };
+        div.appendChild(btn);
+      }
+    }
+    grid.appendChild(div);
+  });
+}
+
+function showDropdown(cellIdx, query, inputEl, cellDiv) {
+  hideDropdown();
+  const q = query.trim();
+  if (!q) return;
+  const alreadyUsed = cells.map((c,i) => i !== cellIdx ? c.name : null).filter(Boolean);
+  const filtered = EMPLOYEES.filter(n => n.includes(q) && !alreadyUsed.includes(n)).slice(0, 10);
+  const dd = document.createElement("div");
+  dd.className = "dropdown";
+  dd.id = "active-dd";
+  if (filtered.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "dropdown-empty";
+    empty.textContent = "명단에 없는 이름입니다";
+    dd.appendChild(empty);
+  } else {
+    filtered.forEach(name => {
+      const item = document.createElement("div");
+      item.className = "dropdown-item" + (cells[cellIdx].name === name ? " selected" : "");
+      item.textContent = name;
+      item.onmousedown = () => {
+        cells[cellIdx].name = name;
+        inputEl.value = name;
+        inputEl.classList.remove("invalid");
+        updateStatus();
+        saveState();
+        hideDropdown();
+      };
+      dd.appendChild(item);
+    });
+  }
+  cellDiv.style.overflow = "visible";
+  cellDiv.appendChild(dd);
+}
+
+function hideDropdown() {
+  const old = document.getElementById("active-dd");
+  if (old) old.remove();
+}
+
+function updateStatus() {
+  const validFilled = cells.filter(c => EMPLOYEES.includes(c.name)).length;
+  document.getElementById("status-bar").textContent = `${validFilled} / 9 칸 입력됨`;
+  const btn = document.getElementById("submit-btn");
+  if (btn) btn.disabled = validFilled < 9;
+}
+
+function submitBingo() {
+  const names = cells.map(c => c.name.trim());
+  if (!names.every(n => EMPLOYEES.includes(n))) { showToast("명단에 없는 이름이 있습니다"); return; }
+  if (new Set(names).size !== 9) { showToast("중복된 이름이 있습니다"); return; }
+  submitted = true;
+  saveState();
+  // 제출 후 버튼 영역 완전히 제거
+  document.getElementById("actions").style.display = "none";
+  document.getElementById("submitted-hint").style.display = "block";
+  document.getElementById("status-bar").textContent = "빙고판 제출 완료! 이름 옆 버튼으로 마킹하세요";
+  renderGrid();
+  showToast("빙고판이 제출되었습니다 ✓");
+}
+
+function resetBingo() {
+  if (!confirm("빙고판을 초기화할까요?")) return;
+  try { sessionStorage.removeItem(STORAGE_KEY); } catch(e) {}
+  cells = Array(9).fill(null).map(() => ({ name: "", marked: false }));
+  submitted = false;
+  bingoLines = new Set();
+  bingoAchievedTime = null;
+  document.getElementById("actions").style.display = "flex";
+  document.getElementById("actions").innerHTML = '<button class="btn primary" id="submit-btn" onclick="submitBingo()" disabled>빙고 제출</button><button class="btn" onclick="resetBingo()">초기화</button>';
+  document.getElementById("submitted-hint").style.display = "none";
+  renderGrid();
+  updateStatus();
+}
+
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = "toast show";
+  setTimeout(() => { t.className = "toast"; }, 2500);
+}
+
+renderGrid();
+
+// 저장된 상태가 제출 완료였으면 UI도 복원
+if (submitted) {
+  document.getElementById("actions").style.display = "none";
+  document.getElementById("submitted-hint").style.display = "block";
+  document.getElementById("status-bar").textContent = "빙고판 제출 완료! 이름 옆 버튼으로 마킹하세요";
+} else {
+  updateStatus();
+}
+</script>
+</body>
+</html>
