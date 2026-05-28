@@ -215,6 +215,14 @@ const EMPLOYEES = [
 
 const STORAGE_KEY = "tcd_bingo_state";
 
+// 새로고침 시 기존 빙고 상태 초기화
+const navEntry = performance.getEntriesByType("navigation")[0];
+if (navEntry && navEntry.type === "reload") {
+  try {
+    sessionStorage.removeItem(STORAGE_KEY);
+  } catch(e) {}
+}
+  
 function saveState() {
   try {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ cells, submitted }));
